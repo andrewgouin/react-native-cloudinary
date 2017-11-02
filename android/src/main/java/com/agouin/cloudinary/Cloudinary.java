@@ -146,6 +146,9 @@ class Cloudinary extends ReactContextBaseJavaModule {
               .addConverterFactory(GsonConverterFactory.create(gson))
               .client(okHttpClient)
               .baseUrl("https://api.cloudinary.com/").build();
+      if (uri.length() > 0 && uri.substring(0,1).equals("/")) {
+        uri = "file://" + uri;
+      }
       this.mUri = Uri.parse(uri);
       this.mService = mRetrofit.create(CloudinaryService.class);
       final long fileSize;

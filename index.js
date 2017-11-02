@@ -4,7 +4,7 @@ var listeners = {};
 var uploadProgressEvent = 'uploadProgress';
 
 var id = 0;
-var META = '__listener_id';
+var META = '__listener_id0';
 
 function getKey(listener) {
   if (!listener.hasOwnProperty(META)) {
@@ -16,7 +16,6 @@ function getKey(listener) {
       value: 'L' + ++id,
     });
   }
-
   return listener[META];
 }
 module.exports = {
