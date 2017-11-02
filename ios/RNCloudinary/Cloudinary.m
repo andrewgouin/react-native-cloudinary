@@ -19,6 +19,7 @@ NSDictionary *mParams;
 NSData *mData;
 NSString *mFilename;
 NSString *mType;
+NSString *uniqueId;
 unsigned int lastByte;
 bool shouldContinue = true;
 RCTPromiseResolveBlock mResolve;
@@ -27,6 +28,7 @@ RCTPromiseRejectBlock mReject;
   
   AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
   NSString *posturl = [@"https://api.cloudinary.com/" stringByAppendingString:mUrl];
+  
   NSURLSessionTask *task = [manager POST:posturl parameters:mParams constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
     unsigned int chunkSize;
     if (firstByte + CHUNKSIZE > mData.length) {
@@ -41,17 +43,30 @@ RCTPromiseRejectBlock mReject;
     RCTLogInfo(@"uploading chunk, firstByte: %u lastByte: %u chunkSize: %u", firstByte, lastByte, chunkSize );
     NSRange range = NSMakeRange(firstByte, chunkSize);
     NSData *chunk = [mData subdataWithRange:range];
-    RCTLogInfo(@"data chunk size: %u",chunk.length);
+    RCTLogInfo(@"data chunk size: %lu",chunk.length);
+    NSString *contentRange = [@"bytes " stringByAppendingString:[[NSString stringWithFormat:@"%u", firstByte] stringByAppendingString:[@"-" stringByAppendingString:[[NSString stringWithFormat:@"%u", lastByte] stringByAppendingString:[@"/" stringByAppendingString:[NSString stringWithFormat:@"%lu", mData.length]]]]]];
+    [manager.requestSerializer setValue:contentRange forHTTPHeaderField:@"Content-Range"];
+    [manager.requestSerializer setValue:uniqueId forHTTPHeaderField:@"X-Unique-Upload-Id"];
     [formData appendPartWithFileData:chunk name:@"file" fileName:mFilename mimeType:mType];
   }  progress:nil success:^(NSURLSessionTask *task, id responseObject) {
     NSLog(@"responseObject = %@", responseObject);
     if (shouldContinue) {
       [Cloudinary uploadChunk: lastByte + 1];
     } else {
-      mResolve(responseObject);
+      NSError *error;
+      NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseObject
+                                                         options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
+                                                           error:&error];
+      if (! jsonData) {
+        NSLog(@"Got an error: %@", error);
+        mReject(@"Parse error", @"Error parsing cloudinary respnse", error);
+      } else {
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        mResolve(jsonString);
+      }
     }
   } failure:^(NSURLSessionTask *task, NSError *error) {
-    NSLog(@"error = %@", error);
+    RCTLogInfo(@"error = %@", error);
     mReject(@"Cloudinary error", @"Cloudinary upload failed" ,error);
   }];
   
@@ -67,10 +82,10 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
 {
   //RCTLogInfo(@"Upload: url: %@ uri: %@ filename: %@ signature: %@ apiKey: %@ timestamp: %@ colors: %@ returnDeleteToken: %@ format: %@ type: %@", url, uri, filename, signature, apiKey, timestamp, colors, returnDeleteToken, format, type);
   mParams = @{@"signature"     : signature,
-                           @"apiKey"    : apiKey,
+                           @"api_key"    : apiKey,
                            @"timestamp" : timestamp,
                            @"colors"    : colors,
-                           @"returnDeleteToken" : returnDeleteToken
+                           @"return_delete_token" : returnDeleteToken
                            };
   mFilename = filename;
   mType = type;
@@ -83,7 +98,7 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
   }
   
   RCTLogInfo(@"params: %@", mParams);
-  NSString *uniqueId = [NSString stringWithFormat:@"Upload-%@", [[NSUUID UUID] UUIDString]];
+  uniqueId = [NSString stringWithFormat:@"Upload-%@", [[NSUUID UUID] UUIDString]];
   RCTLogInfo(@"uniqueId: %@", uniqueId);
   NSURL *nsuri = [[NSURL alloc] initWithString:uri];
   PHAsset * asset = [[PHAsset fetchAssetsWithALAssetURLs:@[nsuri] options:nil] lastObject];
