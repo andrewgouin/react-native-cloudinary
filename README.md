@@ -45,17 +45,17 @@ pod install
 ```javascript
 import Cloudinary from 'react-native-cloudinary';
 ...
-Cloudinary.upload(url,
-                  uri,
-                  filename,
-                  signature,
-                  apiKey,
-                  timestamp,
-                  colors,
-                  returnDeleteToken,
-                  format,
-                  type)
-          .then(r => /* Cloudinary response in r*/)
+Cloudinary.upload(url, // url after https://api.cloudinary.com/
+                  uri, // uri to media
+                  filename, // file name
+                  signature, // signature to sign parameters
+                  apiKey, // api key for signing
+                  timestamp, // timestamp in epoch time
+                  colors, // boolean matching what was requested from cloudinary
+                  returnDeleteToken, // boolean matching what was requested from cloudinary
+                  format, // string matching what was requested from cloudinary
+                  type // mimetype
+          .then(r => /* Cloudinary response in r including public_id, etc. */)
           .catch(e => /* Cloudinary error in e*/);
 ...
 ```
