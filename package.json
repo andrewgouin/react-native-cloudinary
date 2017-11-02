@@ -1,0 +1,27 @@
+{
+  "name": "react-native-cloudinary",
+  "version": "0.0.1",
+  "description": "React Native module for cloudinary chunked upload",
+  "main": "index.js",
+  "author":
+    "Andrew Gouin <agouin@singularity-interactive.com> (https://github.com/andrewgouin)",
+  "files": ["README.md", "LICENSE", "index.js", "android/*", "ios/*"],
+  "keywords": [
+    "react-native",
+    "cloudinary",
+    "upload",
+    "chunked",
+    "image",
+    "photo",
+    "video",
+    "audio",
+    "music",
+    "documents",
+    "pdf"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:andrewgouin/react-native-cloudinary.git"
+  },
+  "nativePackage": true
+}

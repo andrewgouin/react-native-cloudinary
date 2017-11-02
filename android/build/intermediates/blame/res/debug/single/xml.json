@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/node_modules/react-native-asset-manager/android/build/intermediates/res/merged/debug/xml/preferences.xml",
+        "source": "/Users/singularity/.android/build-cache/8e8d64777cb5236de4fd1d79d25add7d6d5bff3a/output/res/xml/preferences.xml"
+    },
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/libraries/react-native-cloudinary/android/build/intermediates/res/merged/debug/xml/preferences.xml",
+        "source": "/Users/singularity/.android/build-cache/8e8d64777cb5236de4fd1d79d25add7d6d5bff3a/output/res/xml/preferences.xml"
+    }
+]

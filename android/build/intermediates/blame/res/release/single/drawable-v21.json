@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/node_modules/react-native-asset-manager/android/build/intermediates/res/merged/release/drawable-v21/abc_edit_text_material.xml",
+        "source": "/Users/singularity/.android/build-cache/5cd9ddbda65301c70e3f746c4f99303e36c381ea/output/res/drawable-v21/abc_edit_text_material.xml"
+    },
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/node_modules/react-native-asset-manager/android/build/intermediates/res/merged/release/drawable-v21/abc_action_bar_item_background_material.xml",
+        "source": "/Users/singularity/.android/build-cache/5cd9ddbda65301c70e3f746c4f99303e36c381ea/output/res/drawable-v21/abc_action_bar_item_background_material.xml"
+    },
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/node_modules/react-native-asset-manager/android/build/intermediates/res/merged/release/drawable-v21/abc_btn_colored_material.xml",
+        "source": "/Users/singularity/.android/build-cache/5cd9ddbda65301c70e3f746c4f99303e36c381ea/output/res/drawable-v21/abc_btn_colored_material.xml"
+    },
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/libraries/react-native-cloudinary/android/build/intermediates/res/merged/release/drawable-v21/abc_btn_colored_material.xml",
+        "source": "/Users/singularity/.android/build-cache/a780b531a5c388e40bd21e20aad7bdeccc5ec0cc/output/res/drawable-v21/abc_btn_colored_material.xml"
+    },
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/libraries/react-native-cloudinary/android/build/intermediates/res/merged/release/drawable-v21/abc_action_bar_item_background_material.xml",
+        "source": "/Users/singularity/.android/build-cache/a780b531a5c388e40bd21e20aad7bdeccc5ec0cc/output/res/drawable-v21/abc_action_bar_item_background_material.xml"
+    },
+    {
+        "merged": "/Users/singularity/gloo/gloo-capture/node_modules/react-native-asset-manager/android/build/intermediates/res/merged/release/drawable-v21/notification_action_background.xml",
+        "source": "/Users/singularity/.android/build-cache/5cd9ddbda65301c70e3f746c4f99303e36c381ea/output/res/drawable-v21/notification_action_background.xml"
+    }
+]
