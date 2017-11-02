@@ -30,9 +30,11 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -134,9 +136,15 @@ class Cloudinary extends ReactContextBaseJavaModule {
       if (format != null) {
         params.put("format", toRequestBody(format));
       }
+      final OkHttpClient okHttpClient = new OkHttpClient.Builder()
+              .readTimeout(60, TimeUnit.SECONDS)
+              .connectTimeout(60, TimeUnit.SECONDS)
+              .writeTimeout(60, TimeUnit.SECONDS)
+              .build();
       this.mRetrofit = new Retrofit.Builder()
               .addConverterFactory(ScalarsConverterFactory.create())
               .addConverterFactory(GsonConverterFactory.create(gson))
+              .client(okHttpClient)
               .baseUrl("https://api.cloudinary.com/").build();
       this.mUri = Uri.parse(uri);
       this.mService = mRetrofit.create(CloudinaryService.class);
@@ -191,7 +199,7 @@ class Cloudinary extends ReactContextBaseJavaModule {
       }
       final byte[] chunk = new byte[chunkSize];
       try {
-        mFileStream.read(chunk, firstByte, chunkSize);
+        mFileStream.read(chunk, 0, chunkSize);
       } catch (IOException e) {
         this.mShouldStop = true;
         mPromise.reject("File read error", "There was a problem reading from the file");
@@ -209,17 +217,23 @@ class Cloudinary extends ReactContextBaseJavaModule {
       response.enqueue(new Callback<JsonObject>() {
         @Override
         public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
-          if (shouldContinue && !mShouldStop) {
-            uploadChunk(lastByte + 1);
+          if (response.errorBody() != null) {
+            String errorMessage;
+            try {
+              errorMessage = response.errorBody().string();
+            } catch( Exception e) {
+              errorMessage = "Fatal error";
+            }
+            mPromise.reject("Cloudinary upload error", errorMessage);
           } else {
-            if (response.errorBody() != null) {
-              String errorMessage;
-              try {
-                errorMessage = response.errorBody().string();
-              } catch( Exception e) {
-                errorMessage = "Fatal error";
-              }
-              mPromise.reject("Cloudinary upload error", errorMessage);
+            WritableMap specificParams = Arguments.createMap();
+            specificParams.putDouble("progress", lastByte / mSize);
+            if (mContext.hasActiveCatalystInstance()) {
+              mContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                      .emit("uploadProgress", specificParams);
+            }
+            if (shouldContinue && !mShouldStop) {
+              uploadChunk(lastByte + 1);
             } else {
               mPromise.resolve(response.body().toString());
             }
@@ -232,12 +246,7 @@ class Cloudinary extends ReactContextBaseJavaModule {
           mPromise.reject("Upload failure", "Cloudinary request failure");
         }
       });
-      WritableMap specificParams = Arguments.createMap();
-      specificParams.putDouble("progress", lastByte / mSize);
-      if (mContext.hasActiveCatalystInstance()) {
-        mContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("uploadProgress", specificParams);
-      }
+
     }
 
     @Override
