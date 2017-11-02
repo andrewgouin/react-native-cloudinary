@@ -13,6 +13,7 @@
 #endif
 
 @implementation Cloudinary
+@synthesize bridge = _bridge;
 unsigned int CHUNKSIZE = 6000000;
 NSString* mUrl;
 NSDictionary *mParams;
@@ -24,6 +25,7 @@ unsigned int lastByte;
 bool shouldContinue = true;
 RCTPromiseResolveBlock mResolve;
 RCTPromiseRejectBlock mReject;
+Cloudinary *instance;
 + (void) uploadChunk:(unsigned int) firstByte {
   
   AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
@@ -50,9 +52,12 @@ RCTPromiseRejectBlock mReject;
     [formData appendPartWithFileData:chunk name:@"file" fileName:mFilename mimeType:mType];
   }  progress:nil success:^(NSURLSessionTask *task, id responseObject) {
     NSLog(@"responseObject = %@", responseObject);
+    float progress = 100.0 * lastByte / mData.length;
+    [instance.bridge.eventDispatcher sendDeviceEventWithName:@"uploadProgress"
+                                                        body:@{@"progress": [NSNumber numberWithFloat:progress]}];
     if (shouldContinue) {
       [Cloudinary uploadChunk: lastByte + 1];
-    } else {
+    } else { 
       NSError *error;
       NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseObject
                                                          options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
@@ -92,6 +97,7 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
   mUrl = url;
   mResolve = resolve;
   mReject = reject;
+  instance = self;
   
   if (format != nil) {
     [mParams setValue:format forKey:@"format"];
