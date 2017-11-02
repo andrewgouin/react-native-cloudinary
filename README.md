@@ -2,7 +2,7 @@
 ```
 npm i --save https://github.com/andrewgouin/react-native-cloudinary/tarball/master
 ```
-##Android
+## Android
 
 Add to settings.gradle
 ```
