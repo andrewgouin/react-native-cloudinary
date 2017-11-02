@@ -64,7 +64,17 @@ class Cloudinary extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void upload(String url, String uri, String filename, String signature, String apiKey, String timestamp, String colors, String returnDeleteToken, @Nullable String format, String type, Promise promise) {
+  public void upload(String url,
+                     String uri,
+                     String filename,
+                     String signature,
+                     String apiKey,
+                     String timestamp,
+                     String colors,
+                     String returnDeleteToken,
+                     @Nullable String format,
+                     String type,
+                     Promise promise) {
     new UploadTask(getReactApplicationContext(), url, uri, filename, signature, apiKey, timestamp, colors, returnDeleteToken, format, type, promise).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 

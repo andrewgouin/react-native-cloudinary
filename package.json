@@ -5,6 +5,8 @@
   "main": "index.js",
   "author":
     "Andrew Gouin <agouin@singularity-interactive.com> (https://github.com/andrewgouin)",
+  "homepage": "https://github.com/andrewgouin/react-native-cloudinary",
+  "license": "MIT",
   "files": ["README.md", "LICENSE", "index.js", "android/*", "ios/*"],
   "keywords": [
     "react-native",
