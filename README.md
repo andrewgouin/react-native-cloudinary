@@ -1,14 +1,13 @@
-Get assets (images and videos) from Android
-
 # Install
 ```
 npm i --save https://github.com/andrewgouin/react-native-cloudinary/tarball/master
 ```
+##Android
 
 Add to settings.gradle
 ```
 include ':react-native-cloudinary'
-project(':react-native-cloudinary').projectDir = new File(rootProject.projectDir, 	'../node_modules/react-native-cloudinary/android')
+project(':react-native-cloudinary').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-cloudinary/android')
 ```
 
 Add to /app/build.gradle dependencies
@@ -29,11 +28,35 @@ import com.agouin.cloudinary.RNCloudinaryPackage;
 ...
 ```
 
+## iOS
+
+Add to podfile
+```
+  pod 'AFNetworking', '~> 3.0'
+  pod 'react-native-cloudinary', path: '../node-modules/react-native-cloudinary'
+```
+
+```
+cd ios/
+pod install
+```
+
 # Usage
 ```
 import Cloudinary from 'react-native-cloudinary';
 ...
-//TODO usage
+Cloudinary.upload(url,
+                  uri,
+                  filename,
+                  signature,
+                  apiKey,
+                  timestamp,
+                  colors,
+                  returnDeleteToken,
+                  format,
+                  type)
+          .then(r => /* Cloudinary response in r*/)
+          .catch(e => /* Cloudinary error in e*/);
 ...
 ```
-# react-native-cloudinary
+
