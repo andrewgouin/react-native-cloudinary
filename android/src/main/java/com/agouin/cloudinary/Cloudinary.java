@@ -227,7 +227,7 @@ class Cloudinary extends ReactContextBaseJavaModule {
             mPromise.reject("Cloudinary upload error", errorMessage);
           } else {
             WritableMap specificParams = Arguments.createMap();
-            specificParams.putDouble("progress", lastByte / mSize);
+            specificParams.putDouble("progress", lastByte * 100.0 / (mSize * 1.0));
             if (mContext.hasActiveCatalystInstance()) {
               mContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                       .emit("uploadProgress", specificParams);
