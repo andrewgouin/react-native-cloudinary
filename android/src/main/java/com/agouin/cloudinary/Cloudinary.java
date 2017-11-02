@@ -11,6 +11,8 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+
 
 import android.database.Cursor;
 import android.net.Uri;
@@ -94,7 +96,7 @@ class Cloudinary extends ReactContextBaseJavaModule {
     private interface CloudinaryService {
       @Multipart
       @POST
-      Call<String> uploadChunkCall(@Url String url, @Header("X-Unique-Upload-Id") String uniqueId, @Header("Content-Range") String contentRange, @Part MultipartBody.Part chunk, @PartMap Map<String,RequestBody> params);
+      Call<JsonObject> uploadChunkCall(@Url String url, @Header("X-Unique-Upload-Id") String uniqueId, @Header("Content-Range") String contentRange, @Part MultipartBody.Part chunk, @PartMap Map<String,RequestBody> params);
     }
 
     private RequestBody toRequestBody(String string) {
@@ -203,10 +205,10 @@ class Cloudinary extends ReactContextBaseJavaModule {
       } catch (IOException e) {
         e.printStackTrace();
       }
-      Call<String> response = mService.uploadChunkCall(mUrl, mUniqueId, "bytes " + firstByte + "-" + lastByte + "/" + mSize, filePart, params);
-      response.enqueue(new Callback<String>() {
+      Call<JsonObject> response = mService.uploadChunkCall(mUrl, mUniqueId, "bytes " + firstByte + "-" + lastByte + "/" + mSize, filePart, params);
+      response.enqueue(new Callback<JsonObject>() {
         @Override
-        public void onResponse(Call<String> call, Response<String> response) {
+        public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
           if (shouldContinue && !mShouldStop) {
             uploadChunk(lastByte + 1);
           } else {
@@ -219,13 +221,13 @@ class Cloudinary extends ReactContextBaseJavaModule {
               }
               mPromise.reject("Cloudinary upload error", errorMessage);
             } else {
-              mPromise.resolve(response.toString());
+              mPromise.resolve(response.body().toString());
             }
           }
         }
 
         @Override
-        public void onFailure(Call<String> call, Throwable t) {
+        public void onFailure(Call<JsonObject> call, Throwable t) {
           mShouldStop = true;
           mPromise.reject("Upload failure", "Cloudinary request failure");
         }
