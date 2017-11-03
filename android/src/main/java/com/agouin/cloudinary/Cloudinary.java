@@ -178,7 +178,6 @@ class Cloudinary extends ReactContextBaseJavaModule {
           return;
         }
       }
-
       if (fileSize > 300000000) {
         promise.reject("File too big","The file maximum size is 300MB");
         this.mShouldStop = true;
@@ -194,8 +193,6 @@ class Cloudinary extends ReactContextBaseJavaModule {
         promise.reject("File not found","The requested media could not be found");
         return;
       }
-
-
     }
 
     private void uploadChunk(int firstByte) {

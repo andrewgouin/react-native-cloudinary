@@ -15,8 +15,9 @@
 @implementation Cloudinary
 @synthesize bridge = _bridge;
 unsigned int CHUNKSIZE = 6000000;
+unsigned int BUFFER_SIZE = 6000000;
 NSString* mUrl;
-NSDictionary *mParams;
+NSMutableDictionary *mParams;
 NSData *mData;
 NSString *mFilename;
 NSString *mType;
@@ -25,36 +26,44 @@ unsigned int lastByte;
 bool shouldContinue = true;
 RCTPromiseResolveBlock mResolve;
 RCTPromiseRejectBlock mReject;
-Cloudinary *instance;
+AFHTTPSessionManager *manager;
+RCTEventDispatcher *eventDispatcher;
+- (instancetype)init
+{
+  self = [super init];
+  if (self) {
+    manager = [AFHTTPSessionManager manager];
+  }
+  return self;
+}
+
 + (void) uploadChunk:(unsigned int) firstByte {
   
-  AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
   NSString *posturl = [@"https://api.cloudinary.com/" stringByAppendingString:mUrl];
-  
+  unsigned int chunkSize;
+  if (firstByte + CHUNKSIZE > mData.length) {
+    chunkSize = mData.length - firstByte;
+    lastByte = mData.length - 1;
+    shouldContinue = false;
+  } else {
+    lastByte = firstByte + CHUNKSIZE - 1;
+    chunkSize = CHUNKSIZE;
+    shouldContinue = true;
+  }
+  NSString *contentRange = [@"bytes " stringByAppendingString:[[NSString stringWithFormat:@"%u", firstByte] stringByAppendingString:[@"-" stringByAppendingString:[[NSString stringWithFormat:@"%u", lastByte] stringByAppendingString:[@"/" stringByAppendingString:[NSString stringWithFormat:@"%lu", mData.length]]]]]];
+  [manager.requestSerializer setValue:contentRange forHTTPHeaderField:@"Content-Range"];
+  [manager.requestSerializer setValue:uniqueId forHTTPHeaderField:@"X-Unique-Upload-Id"];
+  RCTLogInfo(@"uploading chunk, firstByte: %u lastByte: %u chunkSize: %u", firstByte, lastByte, chunkSize );
   NSURLSessionTask *task = [manager POST:posturl parameters:mParams constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
-    unsigned int chunkSize;
-    if (firstByte + CHUNKSIZE > mData.length) {
-      chunkSize = mData.length - firstByte;
-      lastByte = mData.length - 1;
-      shouldContinue = false;
-    } else {
-      lastByte = firstByte + CHUNKSIZE - 1;
-      chunkSize = CHUNKSIZE;
-      shouldContinue = true;
-    }
-    RCTLogInfo(@"uploading chunk, firstByte: %u lastByte: %u chunkSize: %u", firstByte, lastByte, chunkSize );
     NSRange range = NSMakeRange(firstByte, chunkSize);
     NSData *chunk = [mData subdataWithRange:range];
     RCTLogInfo(@"data chunk size: %lu",chunk.length);
-    NSString *contentRange = [@"bytes " stringByAppendingString:[[NSString stringWithFormat:@"%u", firstByte] stringByAppendingString:[@"-" stringByAppendingString:[[NSString stringWithFormat:@"%u", lastByte] stringByAppendingString:[@"/" stringByAppendingString:[NSString stringWithFormat:@"%lu", mData.length]]]]]];
-    [manager.requestSerializer setValue:contentRange forHTTPHeaderField:@"Content-Range"];
-    [manager.requestSerializer setValue:uniqueId forHTTPHeaderField:@"X-Unique-Upload-Id"];
     [formData appendPartWithFileData:chunk name:@"file" fileName:mFilename mimeType:mType];
   }  progress:nil success:^(NSURLSessionTask *task, id responseObject) {
     NSLog(@"responseObject = %@", responseObject);
     float progress = 100.0 * lastByte / mData.length;
-    [instance.bridge.eventDispatcher sendDeviceEventWithName:@"uploadProgress"
-                                                        body:@{@"progress": [NSNumber numberWithFloat:progress]}];
+    [eventDispatcher sendDeviceEventWithName:@"uploadProgress"
+                                                    body:@{@"progress": [NSNumber numberWithFloat:progress]}];
     if (shouldContinue) {
       [Cloudinary uploadChunk: lastByte + 1];
     } else { 
@@ -86,22 +95,32 @@ RCT_EXPORT_MODULE();
 RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSString *)filename signature: (NSString *) signature apiKey: (NSString *)apiKey timestamp: (NSString*)timestamp colors: (NSString *)colors returnDeleteToken: (NSString *)returnDeleteToken format: (NSString *)format type: (NSString *)type resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
   //RCTLogInfo(@"Upload: url: %@ uri: %@ filename: %@ signature: %@ apiKey: %@ timestamp: %@ colors: %@ returnDeleteToken: %@ format: %@ type: %@", url, uri, filename, signature, apiKey, timestamp, colors, returnDeleteToken, format, type);
-  mParams = @{@"signature"     : signature,
+  if (format != nil) {
+    mParams = @{@"signature"     : signature,
                            @"api_key"    : apiKey,
                            @"timestamp" : timestamp,
                            @"colors"    : colors,
-                           @"return_delete_token" : returnDeleteToken
+                           @"return_delete_token" : returnDeleteToken,
+                           @"format": format,
                            };
+  } else {
+    mParams = @{@"signature"     : signature,
+                @"api_key"    : apiKey,
+                @"timestamp" : timestamp,
+                @"colors"    : colors,
+                @"return_delete_token" : returnDeleteToken,
+                };
+  }
   mFilename = filename;
   mType = type;
   mUrl = url;
   mResolve = resolve;
   mReject = reject;
-  instance = self;
+  eventDispatcher = self.bridge.eventDispatcher;
   
-  if (format != nil) {
+  /*if (format != nil) {
     [mParams setValue:format forKey:@"format"];
-  }
+  }*/
   
   RCTLogInfo(@"params: %@", mParams);
   uniqueId = [NSString stringWithFormat:@"Upload-%@", [[NSUUID UUID] UUIDString]];
@@ -125,6 +144,14 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
         [Cloudinary uploadChunk: 0];
       }
     }];
+  } else {  //no asset, must be from google drive or elsewhere.
+    if ([[uri substringWithRange:NSMakeRange(0, 7)] isEqualToString: @"file://"]) {
+      uri = [uri substringFromIndex:7];
+      RCTLogInfo(@"file:// removed from uri, new uri: %@", uri);
+    }
+    RCTLogInfo(@"uri: %@",uri);
+    mData = [NSData dataWithContentsOfFile:uri];
+    [Cloudinary uploadChunk: 0];
   }
 }
 
