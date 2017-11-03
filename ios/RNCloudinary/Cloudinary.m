@@ -132,26 +132,46 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
     options.synchronous = YES;
     options.networkAccessAllowed = NO;
     options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
-    [[PHImageManager defaultManager] requestImageDataForAsset:asset options:options resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
-      NSNumber * isError = [info objectForKey:PHImageErrorKey];
-      NSNumber * isCloud = [info objectForKey:PHImageResultIsInCloudKey];
-      if ([isError boolValue] || [isCloud boolValue] || ! imageData) {
-        RCTLogInfo(@"failed to get image data");
-        mReject(@"Read file failed", @"Failed to get data", @"");
-      } else {
-        RCTLogInfo(@"success! image data ready to stream");
-        mData = imageData;
-        [Cloudinary uploadChunk: 0];
-      }
-    }];
-  } else {  //no asset, must be from google drive or elsewhere.
+    if ([[mType substringToIndex: 5] isEqualToString:@"video"]){
+      PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
+      options.version = PHVideoRequestOptionsVersionOriginal;
+      
+      [[PHImageManager defaultManager] requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset *asset, AVAudioMix *audioMix, NSDictionary *info) {
+        if ([asset isKindOfClass:[AVURLAsset class]]) {
+          NSURL *URL = [(AVURLAsset *)asset URL];
+          mData = [NSData dataWithContentsOfURL:URL];
+          [Cloudinary uploadChunk:0];
+        }
+      }];
+    } else {
+      [[PHImageManager defaultManager] requestImageDataForAsset:asset options:options resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+        NSNumber * isError = [info objectForKey:PHImageErrorKey];
+        NSNumber * isCloud = [info objectForKey:PHImageResultIsInCloudKey];
+        if ([isError boolValue] || [isCloud boolValue] || ! imageData) {
+          RCTLogInfo(@"failed to get image data");
+          mReject(@"Read file failed", @"Failed to get data", @"");
+        } else {
+          RCTLogInfo(@"success! image data ready to stream");
+          mData = imageData;
+          [Cloudinary uploadChunk: 0];
+        }
+      }];
+    }
+  } else {  //no asset, must be from google drive, dropbox, icloud drive, etc.
     if ([[uri substringWithRange:NSMakeRange(0, 7)] isEqualToString: @"file://"]) {
       uri = [uri substringFromIndex:7];
       RCTLogInfo(@"file:// removed from uri, new uri: %@", uri);
     }
+    //uri = [@"file://" stringByAppendingString:uri];
     RCTLogInfo(@"uri: %@",uri);
-    mData = [NSData dataWithContentsOfFile:uri];
-    [Cloudinary uploadChunk: 0];
+    NSError *error;
+    mData = [NSData dataWithContentsOfFile:uri options: 0 error: &error];
+    if (mData == nil){
+      mReject(@"Unable to read file", @"Failed to get contents of file", error);
+      RCTLogInfo(@"error getting contents of file: %@", error);
+    } else {
+      [Cloudinary uploadChunk: 0];
+    }
   }
 }
 
