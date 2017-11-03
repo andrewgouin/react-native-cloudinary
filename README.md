@@ -58,5 +58,12 @@ Cloudinary.upload(url, // url after https://api.cloudinary.com/
           .then(r => /* Cloudinary response in r including public_id, etc. */)
           .catch(e => /* Cloudinary error in e*/);
 ...
+
+// Get progress events
+let progressListener = progress => {
+  console.log('received progress event', progress);
+};
+Cloudinary.addUploadProgressListener(progressListener); //before upload
+Cloudinary.removeUploadProgressListener(progressListener); //after upload
 ```
 
