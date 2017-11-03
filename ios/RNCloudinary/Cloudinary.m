@@ -125,6 +125,7 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
   RCTLogInfo(@"params: %@", mParams);
   uniqueId = [NSString stringWithFormat:@"Upload-%@", [[NSUUID UUID] UUIDString]];
   RCTLogInfo(@"uniqueId: %@", uniqueId);
+  uri = [uri stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
   NSURL *nsuri = [[NSURL alloc] initWithString:uri];
   PHAsset * asset = [[PHAsset fetchAssetsWithALAssetURLs:@[nsuri] options:nil] lastObject];
   if (asset) {
@@ -161,8 +162,7 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
     if ([[uri substringWithRange:NSMakeRange(0, 7)] isEqualToString: @"file://"]) {
       uri = [uri substringFromIndex:7];
       RCTLogInfo(@"file:// removed from uri, new uri: %@", uri);
-    }
-    //uri = [@"file://" stringByAppendingString:uri];
+    }    
     RCTLogInfo(@"uri: %@",uri);
     NSError *error;
     mData = [NSData dataWithContentsOfFile:uri options: 0 error: &error];
