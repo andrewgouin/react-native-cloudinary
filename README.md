@@ -53,7 +53,7 @@ Cloudinary.upload(url, // url after https://api.cloudinary.com/
                   timestamp, // timestamp in epoch time
                   colors, // boolean matching what was requested from cloudinary
                   returnDeleteToken, // boolean matching what was requested from cloudinary
-                  format, // string matching what was requested from cloudinary
+                  format, // string matching what was requested from cloudinary (null if not used)
                   type // mimetype
           .then(r => /* Cloudinary response in r including public_id, etc. */)
           .catch(e => /* Cloudinary error in e*/);
