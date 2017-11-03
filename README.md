@@ -44,7 +44,13 @@ pod install
 # Usage
 ```javascript
 import Cloudinary from 'react-native-cloudinary';
-...
+
+let progressListener = progress => {
+  console.log('received progress event', progress);
+};
+// Get progress events
+Cloudinary.addUploadProgressListener(progressListener); //before upload
+
 Cloudinary.upload(url, // url after https://api.cloudinary.com/
                   uri, // uri to media
                   filename, // file name
@@ -57,13 +63,7 @@ Cloudinary.upload(url, // url after https://api.cloudinary.com/
                   type // mimetype
           .then(r => /* Cloudinary response in r including public_id, etc. */)
           .catch(e => /* Cloudinary error in e*/);
-...
 
-// Get progress events
-let progressListener = progress => {
-  console.log('received progress event', progress);
-};
-Cloudinary.addUploadProgressListener(progressListener); //before upload
 Cloudinary.removeUploadProgressListener(progressListener); //after upload
 ```
 
