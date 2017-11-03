@@ -8,26 +8,14 @@
 #import <React/RCTEventDispatcher.h>
 #import <React/RCTLog.h>
 #else
-#import "RCTEventDispatcher.h"
-#import "RCTLog.h"
+
 #endif
 
 @implementation Cloudinary
 @synthesize bridge = _bridge;
 unsigned int CHUNKSIZE = 6000000;
 unsigned int BUFFER_SIZE = 6000000;
-NSString* mUrl;
-NSMutableDictionary *mParams;
-NSData *mData;
-NSString *mFilename;
-NSString *mType;
-NSString *uniqueId;
-unsigned int lastByte;
-bool shouldContinue = true;
-RCTPromiseResolveBlock mResolve;
-RCTPromiseRejectBlock mReject;
 AFHTTPSessionManager *manager;
-RCTEventDispatcher *eventDispatcher;
 - (instancetype)init
 {
   self = [super init];
@@ -37,7 +25,7 @@ RCTEventDispatcher *eventDispatcher;
   return self;
 }
 
-+ (void) uploadChunk:(unsigned int) firstByte {
++ (void) uploadChunk:(unsigned int) firstByte mUrl: (NSString *) mUrl mParams: (NSDictionary *) mParams mData: (NSData *) mData mFilename: (NSString *) mFilename mType: (NSString *) mType mUniqueId: (NSString *) mUniqueId lastByte: (unsigned int) lastByte shouldContinue: (bool) shouldContinue mResolve: (RCTPromiseResolveBlock) mResolve mReject: (RCTPromiseRejectBlock) mReject eventDispatcher: (RCTEventDispatcher *) eventDispatcher {
   
   NSString *posturl = [@"https://api.cloudinary.com/" stringByAppendingString:mUrl];
   unsigned int chunkSize;
@@ -52,7 +40,7 @@ RCTEventDispatcher *eventDispatcher;
   }
   NSString *contentRange = [@"bytes " stringByAppendingString:[[NSString stringWithFormat:@"%u", firstByte] stringByAppendingString:[@"-" stringByAppendingString:[[NSString stringWithFormat:@"%u", lastByte] stringByAppendingString:[@"/" stringByAppendingString:[NSString stringWithFormat:@"%lu", mData.length]]]]]];
   [manager.requestSerializer setValue:contentRange forHTTPHeaderField:@"Content-Range"];
-  [manager.requestSerializer setValue:uniqueId forHTTPHeaderField:@"X-Unique-Upload-Id"];
+  [manager.requestSerializer setValue:mUniqueId forHTTPHeaderField:@"X-Unique-Upload-Id"];
   RCTLogInfo(@"uploading chunk, firstByte: %u lastByte: %u chunkSize: %u", firstByte, lastByte, chunkSize );
   NSURLSessionTask *task = [manager POST:posturl parameters:mParams constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
     NSRange range = NSMakeRange(firstByte, chunkSize);
@@ -65,8 +53,8 @@ RCTEventDispatcher *eventDispatcher;
     [eventDispatcher sendDeviceEventWithName:@"uploadProgress"
                                                     body:@{@"progress": [NSNumber numberWithFloat:progress]}];
     if (shouldContinue) {
-      [Cloudinary uploadChunk: lastByte + 1];
-    } else { 
+      [Cloudinary uploadChunk:lastByte + 1 mUrl:mUrl mParams:mParams mData:mData mFilename:mFilename mType:mType mUniqueId:mUniqueId lastByte:lastByte shouldContinue:shouldContinue mResolve:mResolve mReject:mReject eventDispatcher:eventDispatcher];
+    } else {
       NSError *error;
       NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseObject
                                                          options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
@@ -94,54 +82,47 @@ RCT_EXPORT_MODULE();
 
 RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSString *)filename signature: (NSString *) signature apiKey: (NSString *)apiKey timestamp: (NSString*)timestamp colors: (NSString *)colors returnDeleteToken: (NSString *)returnDeleteToken format: (NSString *)format type: (NSString *)type resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
-  //RCTLogInfo(@"Upload: url: %@ uri: %@ filename: %@ signature: %@ apiKey: %@ timestamp: %@ colors: %@ returnDeleteToken: %@ format: %@ type: %@", url, uri, filename, signature, apiKey, timestamp, colors, returnDeleteToken, format, type);
-  if (format != nil) {
-    mParams = @{@"signature"     : signature,
-                           @"api_key"    : apiKey,
-                           @"timestamp" : timestamp,
-                           @"colors"    : colors,
-                           @"return_delete_token" : returnDeleteToken,
-                           @"format": format,
-                           };
-  } else {
-    mParams = @{@"signature"     : signature,
-                @"api_key"    : apiKey,
-                @"timestamp" : timestamp,
-                @"colors"    : colors,
-                @"return_delete_token" : returnDeleteToken,
-                };
-  }
-  mFilename = filename;
-  mType = type;
-  mUrl = url;
-  mResolve = resolve;
-  mReject = reject;
-  eventDispatcher = self.bridge.eventDispatcher;
+  NSMutableDictionary * mParams = [[NSMutableDictionary alloc] initWithCapacity:6];
   
-  /*if (format != nil) {
+  if (signature != nil) {
+    [mParams setValue:signature forKey:@"signature"];
+  }
+  if (apiKey != nil) {
+    [mParams setValue:apiKey forKey:@"api_key"];
+  }
+  if (timestamp != nil) {
+    [mParams setValue:timestamp forKey:@"timestamp"];
+  }
+  if (colors != nil) {
+    [mParams setValue:colors forKey:@"colors"];
+  }
+  if (returnDeleteToken != nil) {
+    [mParams setValue:returnDeleteToken forKey:@"return_delete_token"];
+  }
+  if (format != nil) {
     [mParams setValue:format forKey:@"format"];
-  }*/
+  }
   
   RCTLogInfo(@"params: %@", mParams);
-  uniqueId = [NSString stringWithFormat:@"Upload-%@", [[NSUUID UUID] UUIDString]];
+  NSString * uniqueId = [NSString stringWithFormat:@"Upload-%@", [[NSUUID UUID] UUIDString]];
   RCTLogInfo(@"uniqueId: %@", uniqueId);
-  uri = [uri stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
   NSURL *nsuri = [[NSURL alloc] initWithString:uri];
+  uri = [uri stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
   PHAsset * asset = [[PHAsset fetchAssetsWithALAssetURLs:@[nsuri] options:nil] lastObject];
   if (asset) {
     PHImageRequestOptions *options = [[PHImageRequestOptions alloc] init];
     options.synchronous = YES;
     options.networkAccessAllowed = NO;
     options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
-    if ([[mType substringToIndex: 5] isEqualToString:@"video"]){
+    if ([[type substringToIndex: 5] isEqualToString:@"video"]){
       PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
       options.version = PHVideoRequestOptionsVersionOriginal;
       
       [[PHImageManager defaultManager] requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset *asset, AVAudioMix *audioMix, NSDictionary *info) {
         if ([asset isKindOfClass:[AVURLAsset class]]) {
           NSURL *URL = [(AVURLAsset *)asset URL];
-          mData = [NSData dataWithContentsOfURL:URL];
-          [Cloudinary uploadChunk:0];
+          NSData * mData = [NSData dataWithContentsOfURL:URL];
+          [Cloudinary uploadChunk:0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte: 0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
         }
       }];
     } else {
@@ -150,11 +131,11 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
         NSNumber * isCloud = [info objectForKey:PHImageResultIsInCloudKey];
         if ([isError boolValue] || [isCloud boolValue] || ! imageData) {
           RCTLogInfo(@"failed to get image data");
-          mReject(@"Read file failed", @"Failed to get data", @"");
+          reject(@"Read file failed", @"Failed to get data", nil);
         } else {
           RCTLogInfo(@"success! image data ready to stream");
-          mData = imageData;
-          [Cloudinary uploadChunk: 0];
+          NSData* mData = imageData;
+          [Cloudinary uploadChunk:0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte:0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
         }
       }];
     }
@@ -165,15 +146,13 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
     }    
     RCTLogInfo(@"uri: %@",uri);
     NSError *error;
-    mData = [NSData dataWithContentsOfFile:uri options: 0 error: &error];
+    NSData * mData = [NSData dataWithContentsOfFile:uri options: 0 error: &error];
     if (mData == nil){
-      mReject(@"Unable to read file", @"Failed to get contents of file", error);
+      reject(@"Unable to read file", @"Failed to get contents of file", error);
       RCTLogInfo(@"error getting contents of file: %@", error);
     } else {
-      [Cloudinary uploadChunk: 0];
+      [Cloudinary uploadChunk:0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte:0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
     }
   }
 }
-
 @end
-
