@@ -4,13 +4,6 @@
 
 #import "Cloudinary.h"
 
-#if __has_include(<React/RCTEventDispatcher.h>)
-#import <React/RCTEventDispatcher.h>
-#import <React/RCTLog.h>
-#else
-
-#endif
-
 @implementation Cloudinary
 @synthesize bridge = _bridge;
 unsigned int CHUNKSIZE = 6000000;
