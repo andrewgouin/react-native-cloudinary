@@ -6,6 +6,12 @@
 #import <Photos/Photos.h>
 #import <AFNetworking/AFNetworking.h>
 #import <UIKit/UIKit.h>
+#import <React/RCTLog.h>
+#if __has_include(<React/RCTEventDispatcher.h>)
+#import <React/RCTEventDispatcher.h>
+#else
+#endif
+#import
 #if __has_include(<React/RCTBridgeModule.h>)
 #import <React/RCTBridgeModule.h>
 #else
