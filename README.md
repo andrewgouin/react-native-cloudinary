@@ -45,7 +45,7 @@ pod install
 ```javascript
 import Cloudinary from 'react-native-cloudinary';
 
-let progressListener = progress => {
+let progressListener = ({progress, id}) => {
   console.log('received progress event', progress);
 };
 // Get progress events
@@ -60,7 +60,8 @@ Cloudinary.upload(url, // url after https://api.cloudinary.com/
                   colors, // boolean matching what was requested from cloudinary
                   returnDeleteToken, // boolean matching what was requested from cloudinary
                   format, // string matching what was requested from cloudinary (null if not used)
-                  type // mimetype
+                  type, // mimetype
+                  id // upload id, unique id that will be sent back in progress event
           .then(r => /* Cloudinary response in r including public_id, etc. */)
           .catch(e => /* Cloudinary error in e*/);
 
