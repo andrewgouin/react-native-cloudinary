@@ -18,7 +18,7 @@ AFHTTPSessionManager *manager;
   return self;
 }
 
-+ (void) uploadChunk:(unsigned int) firstByte mUrl: (NSString *) mUrl mParams: (NSDictionary *) mParams mData: (NSData *) mData mFilename: (NSString *) mFilename mType: (NSString *) mType mUniqueId: (NSString *) mUniqueId lastByte: (unsigned int) lastByte shouldContinue: (bool) shouldContinue mResolve: (RCTPromiseResolveBlock) mResolve mReject: (RCTPromiseRejectBlock) mReject eventDispatcher: (RCTEventDispatcher *) eventDispatcher {
++ (void) uploadChunk:(int) uploadId firstByte: (unsigned int) firstByte mUrl: (NSString *) mUrl mParams: (NSDictionary *) mParams mData: (NSData *) mData mFilename: (NSString *) mFilename mType: (NSString *) mType mUniqueId: (NSString *) mUniqueId lastByte: (unsigned int) lastByte shouldContinue: (bool) shouldContinue mResolve: (RCTPromiseResolveBlock) mResolve mReject: (RCTPromiseRejectBlock) mReject eventDispatcher: (RCTEventDispatcher *) eventDispatcher {
   
   NSString *posturl = [@"https://api.cloudinary.com/" stringByAppendingString:mUrl];
   unsigned int chunkSize;
@@ -44,9 +44,12 @@ AFHTTPSessionManager *manager;
     NSLog(@"responseObject = %@", responseObject);
     float progress = 100.0 * lastByte / mData.length;
     [eventDispatcher sendDeviceEventWithName:@"uploadProgress"
-                                                    body:@{@"progress": [NSNumber numberWithFloat:progress]}];
+                                        body:@{@"progress":
+                                                 @{@"progress": [NSNumber numberWithFloat:progress],
+                                                @"id": [NSNumber numberWithInteger:uploadId]
+                                                }}];
     if (shouldContinue) {
-      [Cloudinary uploadChunk:lastByte + 1 mUrl:mUrl mParams:mParams mData:mData mFilename:mFilename mType:mType mUniqueId:mUniqueId lastByte:lastByte shouldContinue:shouldContinue mResolve:mResolve mReject:mReject eventDispatcher:eventDispatcher];
+      [Cloudinary uploadChunk: uploadId firstByte: lastByte + 1 mUrl: mUrl mParams: mParams mData: mData mFilename: mFilename mType: mType mUniqueId: mUniqueId lastByte: lastByte shouldContinue: shouldContinue mResolve: mResolve mReject: mReject eventDispatcher: eventDispatcher];
     } else {
       NSError *error;
       NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseObject
@@ -73,7 +76,7 @@ AFHTTPSessionManager *manager;
 
 RCT_EXPORT_MODULE();
 
-RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSString *)filename signature: (NSString *) signature apiKey: (NSString *)apiKey timestamp: (NSString*)timestamp colors: (NSString *)colors returnDeleteToken: (NSString *)returnDeleteToken format: (NSString *)format type: (NSString *)type resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSString *)filename signature: (NSString *) signature apiKey: (NSString *)apiKey timestamp: (NSString*)timestamp colors: (NSString *)colors returnDeleteToken: (NSString *)returnDeleteToken format: (NSString *)format type: (NSString *)type uploadId: (int) uploadId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 {
   NSMutableDictionary * mParams = [[NSMutableDictionary alloc] initWithCapacity:6];
   
@@ -115,7 +118,7 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
         if ([asset isKindOfClass:[AVURLAsset class]]) {
           NSURL *URL = [(AVURLAsset *)asset URL];
           NSData * mData = [NSData dataWithContentsOfURL:URL];
-          [Cloudinary uploadChunk:0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte: 0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
+          [Cloudinary uploadChunk:uploadId firstByte: 0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte: 0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
         }
       }];
     } else {
@@ -128,7 +131,7 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
         } else {
           RCTLogInfo(@"success! image data ready to stream");
           NSData* mData = imageData;
-          [Cloudinary uploadChunk:0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte:0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
+          [Cloudinary uploadChunk: uploadId firstByte: 0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte:0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
         }
       }];
     }
@@ -144,7 +147,7 @@ RCT_EXPORT_METHOD(upload:(NSString *)url uri: (NSString *)uri filename: (NSStrin
       reject(@"Unable to read file", @"Failed to get contents of file", error);
       RCTLogInfo(@"error getting contents of file: %@", error);
     } else {
-      [Cloudinary uploadChunk:0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte:0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
+      [Cloudinary uploadChunk: uploadId firstByte: 0 mUrl:url mParams:mParams mData:mData mFilename:filename mType:type mUniqueId:uniqueId lastByte:0 shouldContinue:true mResolve:resolve mReject:reject eventDispatcher:self.bridge.eventDispatcher];
     }
   }
 }

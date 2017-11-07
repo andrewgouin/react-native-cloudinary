@@ -74,8 +74,9 @@ class Cloudinary extends ReactContextBaseJavaModule {
                      String returnDeleteToken,
                      @Nullable String format,
                      String type,
+                     int id,
                      Promise promise) {
-    new UploadTask(getReactApplicationContext(), url, uri, filename, signature, apiKey, timestamp, colors, returnDeleteToken, format, type, promise).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    new UploadTask(getReactApplicationContext(), url, uri, filename, signature, apiKey, timestamp, colors, returnDeleteToken, format, type, id, promise).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   protected static String getSaltString() {
@@ -102,6 +103,7 @@ class Cloudinary extends ReactContextBaseJavaModule {
     private final int mSize;
     private final String mType;
     private boolean mShouldStop = false;
+    private int mUploadId;
     private static final int CHUNK_SIZE = 6000000;
     private static final Map<String, RequestBody> params = new HashMap<>();
 
@@ -127,6 +129,7 @@ class Cloudinary extends ReactContextBaseJavaModule {
             String returnDeleteToken,
             String format,
             String type,
+            int id,
             Promise promise) {
       super(context);
       Gson gson = new GsonBuilder()
@@ -138,6 +141,7 @@ class Cloudinary extends ReactContextBaseJavaModule {
       this.mUrl = url;
       this.mType = type;
       this.mFilename = filename;
+      this.mUploadId = id;
       params.put("signature", toRequestBody(signature));
       params.put("timestamp",toRequestBody(timestamp));
       params.put("api_key", toRequestBody(apiKey));
@@ -238,9 +242,12 @@ class Cloudinary extends ReactContextBaseJavaModule {
           } else {
             WritableMap specificParams = Arguments.createMap();
             specificParams.putDouble("progress", lastByte * 100.0 / (mSize * 1.0));
+            specificParams.putInt("id", mUploadId);
+            WritableMap container = Arguments.createMap();
+            container.putMap("progress", specificParams);
             if (mContext.hasActiveCatalystInstance()) {
               mContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                      .emit("uploadProgress", specificParams);
+                      .emit("uploadProgress", container);
             }
             if (shouldContinue && !mShouldStop) {
               uploadChunk(lastByte + 1);
@@ -266,4 +273,3 @@ class Cloudinary extends ReactContextBaseJavaModule {
     }
   }
 }
-
